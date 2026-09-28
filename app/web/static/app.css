@@ -1,0 +1,459 @@
+/* ---------------------------------------------------------------------
+   Oracle SQL Preflight
+   Author:  Federico Guzman  (github.com/kraiosis)
+   Website: https://fedeguzman.com    Blog: https://weblantropia.com
+
+   Built with AI assistance from Claude (Anthropic). The analyzer's
+   runtime behavior stays deterministic and AI-free -- see README.md,
+   "Author & Credits", for what the AI assistance covers.
+   --------------------------------------------------------------------- */
+
+/* Oracle SQL Preflight Analyzer — IDE-console theme
+   Layout inspired by browser-based SQL worksheets (top bar, explorer
+   sidebar with tabs, worksheet tabs, editor, tabbed results panel).
+   Supports light and dark themes via [data-theme] on <html>. */
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #0E1218;
+  --bg-raised: #141924;
+  --panel: #171D2A;
+  --panel-alt: #1D2433;
+  --panel-header: #161C28;
+  --border: #262E40;
+  --border-soft: #1E2534;
+
+  --text: #E7EAF2;
+  --text-muted: #8993A8;
+  --text-faint: #5C6580;
+
+  --accent: #E3A33D;       /* instrument amber */
+  --accent-contrast: #1A1305;
+  --accent-soft: #4A3A1E;
+  --accent-glow: rgba(227, 163, 61, 0.35);
+
+  --crit: #EF5B54;
+  --crit-bg: #2A1416;
+  --warn: #E3A33D;
+  --warn-bg: #2A2113;
+  --info: #5B9BD9;
+  --info-bg: #131E2A;
+  --ok: #3FCF8E;
+  --ok-bg: #12261D;
+
+  --scrollbar: var(--border);
+  --font-ui: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #F4F5F8;
+  --bg-raised: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-alt: #EEF0F5;
+  --panel-header: #F6F7FA;
+  --border: #DBDFE8;
+  --border-soft: #E5E8F0;
+
+  --text: #1B2130;
+  --text-muted: #5B6478;
+  --text-faint: #8991A3;
+
+  --accent: #B4740E;
+  --accent-contrast: #FFFFFF;
+  --accent-soft: #F3E1BE;
+  --accent-glow: rgba(180, 116, 14, 0.22);
+
+  --crit: #C43D35;
+  --crit-bg: #FBEAE9;
+  --warn: #B4740E;
+  --warn-bg: #FAF0DD;
+  --info: #2A6FB0;
+  --info-bg: #E9F1FA;
+  --ok: #1F9463;
+  --ok-bg: #E7F6EF;
+
+  --scrollbar: #C6CBD6;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  height: 100%;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(227,163,61,0.06), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(91,155,217,0.05), transparent 40%);
+  transition: background-color .15s ease, color .15s ease;
+}
+:root[data-theme="light"] body { background-image: none; }
+
+code, .mono, textarea, .evidence, .sql-text {
+  font-family: var(--font-mono);
+}
+
+/* ---- Instrument lamps -------------------------------------------- */
+.lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset;
+  flex-shrink: 0;
+}
+.lamp-on {
+  background: var(--ok);
+  box-shadow: 0 0 6px 1px var(--ok), 0 0 0 1px rgba(255,255,255,0.08) inset;
+}
+.lamp-off { background: var(--text-faint); }
+
+/* ---- Top bar ---------------------------------------------------------*/
+.topbar {
+  background: var(--panel-header);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.brand-mark {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), #C97A1E);
+  display: flex; align-items: center; justify-content: center;
+  color: #1A1305;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.topnav-item {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0.45rem 0.7rem;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+.topnav-item:hover { color: var(--text); background: var(--panel-alt); }
+.topnav-item.active {
+  color: var(--accent);
+  background: var(--panel-alt);
+  border-color: var(--border-soft);
+}
+
+.icon-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+  background: var(--panel-alt);
+  transition: color .12s ease, border-color .12s ease;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--text-faint); }
+
+/* ---- App shell: sidebar + worksheet ------------------------------- */
+.explorer {
+  background: var(--bg-raised);
+  border-right: 1px solid var(--border-soft);
+}
+
+.explorer-tabs {
+  border-bottom: 1px solid var(--border-soft);
+}
+.explorer-tab {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  padding: 0.6rem 0.9rem;
+  color: var(--text-faint);
+  border-bottom: 2px solid transparent;
+}
+.explorer-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.tree-node {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 0.32rem 0.5rem;
+  border-radius: 4px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tree-node:hover { background: var(--panel-alt); color: var(--text); }
+.tree-node.tree-table { font-weight: 500; color: var(--text); cursor: pointer; }
+.tree-caret {
+  width: 12px; text-align: center; color: var(--text-faint);
+  transition: transform .12s ease;
+  flex-shrink: 0;
+}
+.tree-caret.open { transform: rotate(90deg); }
+.tree-icon { flex-shrink: 0; opacity: .8; }
+.tree-children { padding-left: 1.15rem; }
+
+/* ---- Worksheet tab strip ------------------------------------------- */
+.worksheet-tabs {
+  background: var(--panel-header);
+  border-bottom: 1px solid var(--border-soft);
+}
+.worksheet-tab {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 0.5rem 0.55rem 0.5rem 0.85rem;
+  border-right: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: 0.5rem;
+  cursor: pointer;
+  max-width: 200px;
+  white-space: nowrap;
+}
+.worksheet-tab span.label { overflow: hidden; text-overflow: ellipsis; }
+.worksheet-tab.active {
+  color: var(--text);
+  background: var(--panel);
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: -1px;
+}
+.worksheet-tab:hover { color: var(--text); }
+.worksheet-tab .tab-close {
+  opacity: .5; width: 15px; height: 15px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+}
+.worksheet-tab .tab-close:hover { opacity: 1; background: var(--border); }
+.worksheet-tab-add {
+  width: 30px; display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.worksheet-tab-add:hover { color: var(--accent); }
+
+/* ---- Editor toolbar --------------------------------------------------*/
+.editor-toolbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* ---- Panels --------------------------------------------------------*/
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+}
+.panel-header { border-bottom: 1px solid var(--border-soft); background: var(--panel-header); }
+
+/* ---- Buttons ---------------------------------------------------------*/
+.btn {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  border-radius: 5px;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.8rem;
+  transition: transform .08s ease, filter .12s ease, background-color .12s ease, border-color .12s ease;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .55; cursor: default; }
+
+.btn-primary { background: var(--accent); color: var(--accent-contrast); }
+.btn-primary:hover { filter: brightness(1.08); }
+
+.btn-secondary {
+  background: var(--panel-alt);
+  border-color: var(--border);
+  color: var(--text);
+}
+.btn-secondary:hover { filter: brightness(1.05); }
+:root[data-theme="dark"] .btn-secondary:hover { background: #232B3D; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--text-faint); }
+
+/* ---- Editor ----------------------------------------------------------*/
+.editor-wrap {
+  display: flex;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.editor-gutter {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-faint);
+  background: var(--panel-header);
+  border-right: 1px solid var(--border-soft);
+  padding: 0.75rem 0.6rem;
+  text-align: right;
+  user-select: none;
+  overflow: hidden;
+  white-space: pre;
+}
+#sql-input {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  resize: vertical;
+  line-height: 1.55;
+  tab-size: 4;
+  flex: 1;
+  min-width: 0;
+}
+#sql-input:focus { outline: none; }
+.editor-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+/* ---- Result tabs ------------------------------------------------------*/
+.result-tabs { border-bottom: 1px solid var(--border-soft); }
+.result-tab {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  padding: 0.55rem 0.9rem;
+  border-bottom: 2px solid transparent;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.result-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.result-tab:hover { color: var(--text); }
+.result-tab .count-pill {
+  font-size: 10px; font-weight: 600;
+  background: var(--panel-alt); color: var(--text-muted);
+  border-radius: 999px; padding: 0 0.4rem; line-height: 1.4;
+}
+
+/* ---- Severity badges ---------------------------------------------------*/
+.badge {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  display: inline-block;
+}
+.badge-CRITICAL { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--crit); }
+.badge-ERROR    { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--crit); }
+.badge-WARNING  { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.badge-INFO     { background: var(--info-bg); color: var(--info); border: 1px solid var(--info); }
+.badge-OK       { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+
+.badge-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ---- Finding card ------------------------------------------------------*/
+.finding {
+  background: var(--panel-alt);
+  border: 1px solid var(--border-soft);
+  border-left-width: 3px;
+  border-radius: 5px;
+}
+.finding-CRITICAL, .finding-ERROR { border-left-color: var(--crit); }
+.finding-WARNING { border-left-color: var(--warn); }
+.finding-INFO { border-left-color: var(--info); }
+
+.evidence {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- Comparison tables (PL/SQL vs T-SQL) --------------------------- */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.compare-col {
+  padding: 0.9rem 1rem;
+}
+.compare-col + .compare-col { border-left: 1px solid var(--border-soft); }
+.compare-col-head {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.6rem;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.compare-topic {
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.compare-topic-title {
+  padding: 0.6rem 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--panel-header);
+  border-bottom: 1px solid var(--border-soft);
+}
+.reftable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.reftable th {
+  text-align: left; font-weight: 600; color: var(--text-faint);
+  padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border-soft);
+  background: var(--panel-header);
+  white-space: nowrap;
+}
+.reftable td {
+  padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border-soft);
+  color: var(--text-muted); vertical-align: top;
+}
+.reftable tr:last-child td { border-bottom: none; }
+.reftable td.rowlabel { color: var(--text); font-weight: 500; white-space: nowrap; }
+
+/* ---- Scrollbars --------------------------------------------------------*/
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ---- Status strip -------------------------------------------------------*/
+.status-strip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Utility fade-in for panel switch (single, restrained) ------------- */
+.fade-in { animation: fadeIn .18s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(2px);} to { opacity: 1; transform: translateY(0);} }
+
+::selection { background: var(--accent-glow); color: var(--text); }
+
+.divider { border-color: var(--border-soft); }
+
+@media (max-width: 900px) {
+  .explorer { display: none; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .compare-col + .compare-col { border-left: none; border-top: 1px solid var(--border-soft); }
+}

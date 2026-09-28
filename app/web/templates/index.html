@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<!--
+  Oracle SQL Preflight
+  Author:  Federico Guzman  (github.com/kraiosis)
+  Website: https://fedeguzman.com    Blog: https://weblantropia.com
+
+  Built with AI assistance from Claude (Anthropic). The analyzer's
+  runtime behavior stays deterministic and AI-free -- see README.md,
+  "Author & Credits", for what the AI assistance covers.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Oracle SQL Preflight Analyzer</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+// Apply saved theme before first paint to avoid a flash of the wrong theme.
+try {
+  const saved = localStorage.getItem("preflight-theme");
+  if (saved) document.documentElement.setAttribute("data-theme", saved);
+} catch (e) {}
+</script>
+
+<link rel="stylesheet" href="/static/tailwind.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="min-h-screen">
+
+<div class="flex flex-col h-screen overflow-hidden">
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar flex items-center gap-4 px-4 h-14 shrink-0">
+    <div class="flex items-center gap-2.5 shrink-0">
+      <div class="brand-mark">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 17l6-6-6-6"/><path d="M13 19h7"/></svg>
+      </div>
+      <div class="leading-tight">
+        <div class="text-[13px] font-semibold" style="color:var(--text);">Oracle SQL Preflight</div>
+        <div class="text-[10px] status-strip -mt-0.5" style="color:var(--text-faint);">v0.9.0 · offline</div>
+      </div>
+    </div>
+
+    <nav class="flex items-center gap-1 overflow-x-auto flex-1">
+      <button data-view="lab" class="topnav-item active">Worksheet</button>
+      <button data-view="rules" class="topnav-item">Rule Catalog</button>
+      <button data-view="schema" class="topnav-item">Schema</button>
+      <button data-view="history" class="topnav-item">History</button>
+      <button data-view="compare" class="topnav-item">PL/SQL vs T-SQL</button>
+      <button data-view="about" class="topnav-item">About</button>
+    </nav>
+
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="hidden sm:flex items-center gap-1.5 status-strip" style="color:var(--text-muted);">
+        <span class="lamp lamp-on"></span> OFFLINE MODE
+      </div>
+      <button id="btn-theme-toggle" class="icon-btn" title="Toggle light / dark theme">
+        <svg id="icon-theme-dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg id="icon-theme-light" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ BODY ============ -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- ===== VIEW: WORKSHEET (lab) — explorer + editor + results ===== -->
+    <div id="view-lab" class="flex-1 flex overflow-hidden">
+
+      <!-- Explorer sidebar -->
+      <aside class="explorer w-64 shrink-0 flex flex-col overflow-hidden">
+        <div class="explorer-tabs flex items-center px-1">
+          <button data-explorer-tab="schema" class="explorer-tab active">SCHEMA</button>
+          <button data-explorer-tab="rules" class="explorer-tab">RULES</button>
+        </div>
+
+        <!-- Explorer: schema tree -->
+        <div id="explorer-schema" class="flex-1 overflow-y-auto p-2.5">
+          <input id="explorer-schema-search" type="text" placeholder="Search tables & columns…"
+            class="btn btn-ghost w-full text-[12px] py-1.5 mb-2" style="text-align:left; justify-content:flex-start;" />
+          <div id="explorer-schema-tree" class="space-y-0.5">
+            <div class="text-[11.5px] px-1.5 py-2" style="color:var(--text-faint);">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Explorer: rules tree -->
+        <div id="explorer-rules" class="flex-1 overflow-y-auto p-2.5 hidden">
+          <input id="explorer-rules-search" type="text" placeholder="Search rules…"
+            class="btn btn-ghost w-full text-[12px] py-1.5 mb-2" style="text-align:left; justify-content:flex-start;" />
+          <div id="explorer-rules-tree" class="space-y-0.5">
+            <div class="text-[11.5px] px-1.5 py-2" style="color:var(--text-faint);">Loading…</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Worksheet + results -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+
+        <!-- worksheet tab strip -->
+        <div class="worksheet-tabs flex items-center overflow-x-auto">
+          <div id="worksheet-tab-list" class="flex items-center"></div>
+          <div id="worksheet-tab-add" class="worksheet-tab-add" title="New worksheet tab">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+
+        <!-- editor toolbar -->
+        <div class="editor-toolbar px-3 py-2 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-analyze" class="btn btn-primary">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              Analyze
+            </button>
+            <button id="btn-format" class="btn btn-secondary">Format</button>
+            <button id="btn-clear" class="btn btn-ghost">Clear</button>
+            <select id="sample-select" class="btn btn-ghost text-[12px] py-1.5">
+              <option value="">Load sample…</option>
+              <option value="update_missing_where">UPDATE — missing WHERE</option>
+              <option value="delete_missing_where">DELETE — missing WHERE</option>
+              <option value="set_where_noop">UPDATE — SET/WHERE no-op</option>
+              <option value="self_assignment">UPDATE — self-assignment (SET col = col)</option>
+              <option value="function_wrapped">UPDATE — function-wrapped SET (UPPER/NVL)</option>
+              <option value="contradictory">UPDATE — contradictory WHERE</option>
+              <option value="range_contradiction">UPDATE — contradictory numeric range</option>
+              <option value="constant_false">UPDATE — constant-false predicate</option>
+              <option value="null_equality">UPDATE — NULL equality</option>
+              <option value="select_star">SELECT *</option>
+              <option value="cartesian_join">SELECT — possible Cartesian join</option>
+              <option value="insert">INSERT statement</option>
+              <option value="merge">MERGE statement</option>
+              <option value="plsql_procedure">PL/SQL — procedure with dynamic SQL</option>
+              <option value="clean">Clean UPDATE (no findings)</option>
+            </select>
+          </div>
+          <div id="elapsed" class="text-[11px] status-strip" style="color:var(--text-faint);"></div>
+        </div>
+
+        <!-- editor -->
+        <div class="px-3 pt-3">
+          <div class="editor-wrap">
+            <div id="editor-gutter" class="editor-gutter">1</div>
+            <textarea id="sql-input" class="w-full text-[13px] px-3 py-3" rows="10"
+              spellcheck="false"
+              placeholder="-- Paste Oracle SQL here, e.g.&#10;UPDATE employees SET status = 'ACTIVE' WHERE status = 'ACTIVE';">UPDATE employees
+SET status = 'ACTIVE'
+WHERE status = 'ACTIVE';</textarea>
+          </div>
+          <div class="text-[11px] mt-1.5 mb-1" style="color:var(--text-faint);">Analyze runs entirely offline. No SQL leaves this machine.</div>
+        </div>
+
+        <!-- results -->
+        <div class="flex-1 flex flex-col overflow-hidden mt-2 mx-3 mb-3 panel">
+          <div id="status-panel" class="px-4 py-2.5 flex items-center gap-3 flex-wrap border-b hidden" style="border-color:var(--border-soft);">
+            <span id="status-badge" class="badge">—</span>
+            <span id="status-text" class="text-[12px]" style="color:var(--text-muted);"></span>
+            <div id="status-counts" class="flex items-center gap-1.5 flex-wrap ml-auto"></div>
+          </div>
+
+          <div class="result-tabs flex items-center px-2">
+            <button data-result-tab="findings" class="result-tab active">Findings <span id="findings-count-pill" class="count-pill">0</span></button>
+            <button data-result-tab="formatted" class="result-tab">Formatted SQL</button>
+            <button data-result-tab="statements" class="result-tab">Statements <span id="statements-count-pill" class="count-pill">0</span></button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto">
+            <div id="result-findings" class="p-4 space-y-2.5">
+              <div class="text-[12.5px] px-1" style="color:var(--text-faint);">Run Analyze to see findings here.</div>
+            </div>
+            <div id="result-formatted" class="p-4 hidden">
+              <pre id="formatted-output" class="sql-text text-[12.5px] px-4 py-3 rounded overflow-x-auto" style="background:var(--bg-raised); border:1px solid var(--border-soft); color:var(--text);"></pre>
+            </div>
+            <div id="result-statements" class="p-4 hidden">
+              <table class="reftable">
+                <thead><tr><th>#</th><th>Type</th><th>Parse OK</th><th>Findings</th></tr></thead>
+                <tbody id="statements-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: RULES ===== -->
+    <section id="view-rules" class="fade-in flex-1 overflow-y-auto px-6 py-5 hidden">
+      <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+        <div>
+          <div class="text-[13px] font-medium" style="color:var(--text);">Rule catalog</div>
+          <div class="text-[11px] mt-0.5" style="color:var(--text-faint);">
+            Backed by <code class="mono">config/rules.json</code> — changes here are saved to disk immediately.
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="rules-category-filter" class="btn btn-ghost text-[12.5px] py-1.5">
+            <option value="">All categories</option>
+          </select>
+          <button id="btn-reload-rules" class="btn btn-secondary">Reload from file</button>
+        </div>
+      </div>
+      <div id="rules-list" class="space-y-2 max-w-3xl"></div>
+    </section>
+
+    <!-- ===== VIEW: SCHEMA ===== -->
+    <section id="view-schema" class="fade-in flex-1 overflow-y-auto px-6 py-5 hidden">
+      <div class="max-w-3xl space-y-5">
+        <div>
+          <div class="text-[13px] font-medium" style="color:var(--text);">Offline schema</div>
+          <p class="text-[11.5px] mt-1" style="color:var(--text-muted);">
+            Paste Oracle <code class="mono">CREATE TABLE</code> DDL for the tables you care about. Once imported,
+            the analyzer checks SQL against it — an unknown column, or a WHERE clause that never mentions the primary
+            key — without ever connecting to a database. This is a schema <em>you</em> provided, so findings are
+            marked <span class="mono">SCHEMA-VERIFIED</span>, not a live database fact.
+          </p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+            <div class="text-[13px] font-medium" style="color:var(--text);">Import DDL</div>
+            <div class="flex items-center gap-2">
+              <button id="btn-schema-sample" class="btn btn-ghost">Load sample DDL</button>
+              <button id="btn-schema-import" class="btn btn-primary">Import</button>
+            </div>
+          </div>
+          <div class="p-4">
+            <textarea id="schema-ddl-input" class="w-full text-[13px] px-4 py-3" rows="8"
+              spellcheck="false"
+              style="background:var(--bg-raised); border:1px solid var(--border); border-radius:6px; color:var(--text);"
+              placeholder="CREATE TABLE employees (&#10;    employee_id NUMBER(10) NOT NULL,&#10;    ...&#10;    CONSTRAINT emp_pk PRIMARY KEY (employee_id)&#10;);"></textarea>
+            <div id="schema-import-result" class="text-[11.5px] mt-2"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="text-[13px] font-medium" style="color:var(--text);">Imported tables</div>
+          <button id="btn-schema-clear" class="btn btn-ghost">Clear all</button>
+        </div>
+        <div id="schema-tables-list" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: HISTORY ===== -->
+    <section id="view-history" class="fade-in flex-1 overflow-y-auto px-6 py-5 hidden">
+      <div class="max-w-4xl space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="text-[13px] font-medium" style="color:var(--text);">Local analysis history</div>
+          <button id="btn-refresh-history" class="btn btn-ghost">Refresh</button>
+        </div>
+        <div class="panel overflow-hidden">
+          <table class="reftable">
+            <thead>
+              <tr><th>#</th><th>Status</th><th>SQL</th><th>Time (UTC)</th></tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+          <div id="history-empty" class="px-4 py-6 text-[12.5px] hidden" style="color:var(--text-faint);">No analyses recorded yet this session.</div>
+        </div>
+        <p class="text-[11px]" style="color:var(--text-faint);">Stored locally in SQLite at <code class="mono">config/history.sqlite3</code>. Nothing is sent anywhere.</p>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: PL/SQL vs T-SQL ===== -->
+    <section id="view-compare" class="fade-in flex-1 overflow-y-auto px-6 py-5 hidden">
+      <div class="max-w-5xl space-y-6">
+        <div>
+          <div class="text-[13px] font-medium" style="color:var(--text);">PL/SQL (Oracle) vs Transact-SQL (SQL Server)</div>
+          <p class="text-[11.5px] mt-1.5" style="color:var(--text-muted); max-width:760px; line-height:1.7;">
+            This analyzer targets Oracle's dialect — PL/SQL and Oracle SQL. If you're coming from SQL Server,
+            most of the surface-level syntax looks familiar but a lot of the details differ: block structure,
+            variable declaration, string concatenation, exception handling, and especially how stored code and
+            dynamic SQL are written. This page is a quick-reference bridge between the two, focused on the parts
+            most likely to trip someone up while writing or reading SQL this tool analyzes.
+          </p>
+        </div>
+
+        <!-- quick reference table -->
+        <div class="compare-topic">
+          <div class="compare-topic-title">Quick reference</div>
+          <div class="overflow-x-auto">
+            <table class="reftable">
+              <thead>
+                <tr><th style="width:190px;">Aspect</th><th>PL/SQL (Oracle)</th><th>Transact-SQL (SQL Server)</th></tr>
+              </thead>
+              <tbody id="compare-quickref-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- detailed side-by-side topics -->
+        <div id="compare-topics" class="space-y-5"></div>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: ABOUT ===== -->
+    <section id="view-about" class="fade-in flex-1 overflow-y-auto px-6 py-5 hidden">
+      <div class="max-w-2xl space-y-4">
+
+        <div class="panel p-5 space-y-3 text-[13px]" style="color:var(--text-muted); line-height:1.7;">
+          <p style="color:var(--text);" class="font-medium text-[14px]">Analyze first. Simulate second. Execute last.</p>
+          <p>This is a local, offline-first preflight layer for Oracle SQL. It never executes SQL and never sends SQL anywhere — it parses statements with SQLGlot's Oracle dialect and applies a deterministic rule engine.</p>
+          <p>Findings are conservative by design: the engine distinguishes <span class="mono" style="color:var(--text);">PROVEN</span>, <span class="mono" style="color:var(--text);">POSSIBLE</span>, and <span class="mono" style="color:var(--text);">UNKNOWN</span>, and it never manufactures a database fact (like a row count) while offline.</p>
+          <p>PL/SQL blocks, stored procedures, dynamic SQL and multi-statement scripts are now recognized (see the Rule Catalog's <span class="mono" style="color:var(--text);">PLSQL</span> category). Oracle DEV/TEST connectivity, impact simulation, and execution plans are planned in later versions — see <span class="mono" style="color:var(--text);">scope.md</span>.</p>
+        </div>
+
+        <div class="panel p-5 space-y-2 text-[13px]" style="color:var(--text-muted); line-height:1.7;">
+          <p style="color:var(--text);" class="font-medium text-[14px]">Author & Credits</p>
+          <p>
+            <span style="color:var(--text);">Oracle SQL Preflight</span> — built by
+            <span style="color:var(--text);">Federico Guzman</span>
+            (<a href="https://fedeguzman.com" target="_blank" rel="noopener" style="color:var(--accent);">fedeguzman.com</a> ·
+            <a href="https://weblantropia.com" target="_blank" rel="noopener" style="color:var(--accent);">weblantropia.com</a> ·
+            <a href="https://github.com/kraiosis" target="_blank" rel="noopener" style="color:var(--accent);">github.com/kraiosis</a>).
+          </p>
+          <p>
+            Development was AI-assisted with <span style="color:var(--text);">Claude</span> (Anthropic) — pair-programming
+            on the parser/rule-engine architecture, the rule catalog, the test suite, and this web UI, under the author's
+            direction and review. That describes how the project was <em>built</em>, not how it <em>works</em>: the shipped
+            analyzer stays deterministic and AI-free at runtime, exactly as stated above — every finding comes from the
+            SQLGlot AST and the rule engine, never from a language model.
+          </p>
+        </div>
+
+        <div class="panel p-5 space-y-2 text-[11.5px]" style="color:var(--text-faint); line-height:1.65;">
+          <p style="color:var(--text-muted);" class="font-medium text-[12.5px]">Trademarks &amp; disclaimer</p>
+          <p>
+            Oracle, Oracle Database, Oracle SQL Developer, Oracle SQL Tuning Advisor, PL/SQL, and SQL*Plus are trademarks
+            or registered trademarks of Oracle Corporation and/or its affiliates. Toad and Toad for Oracle are trademarks
+            of Quest Software Inc. FreeSQL and freesql.com are Oracle's own product/site, referenced here purely for
+            factual, descriptive comparison. Transact-SQL (T-SQL), SQL Server, SQL Server Management Studio (SSMS), and
+            Azure Data Studio are trademarks of Microsoft Corporation. SQLFluff and SQLGlot are the property of their
+            respective open-source maintainers/projects. Claude and Anthropic are trademarks of Anthropic, PBC.
+          </p>
+          <p>
+            All product, service, and company names referenced by this application are used for identification and
+            comparison purposes only and remain the property of their respective owners. Use of these names does not
+            imply any affiliation with or endorsement by their owners. This project is independent and unofficial: it is
+            not produced, endorsed, maintained, or supported by Oracle Corporation, Quest Software, Microsoft
+            Corporation, or any other company named here.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

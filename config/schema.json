@@ -1,0 +1,86 @@
+{
+  "tables": [
+    {
+      "name": "employees",
+      "columns": [
+        {
+          "name": "employee_id",
+          "data_type": "NUMBER(10)",
+          "nullable": false,
+          "is_primary_key": true,
+          "type_category": "NUMERIC",
+          "max_length": null
+        },
+        {
+          "name": "first_name",
+          "data_type": "VARCHAR2(50)",
+          "nullable": true,
+          "is_primary_key": false,
+          "type_category": "STRING",
+          "max_length": 50
+        },
+        {
+          "name": "last_name",
+          "data_type": "VARCHAR2(50)",
+          "nullable": false,
+          "is_primary_key": false,
+          "type_category": "STRING",
+          "max_length": 50
+        },
+        {
+          "name": "department_id",
+          "data_type": "NUMBER(10)",
+          "nullable": true,
+          "is_primary_key": false,
+          "type_category": "NUMERIC",
+          "max_length": null
+        },
+        {
+          "name": "salary",
+          "data_type": "NUMBER(10, 2)",
+          "nullable": true,
+          "is_primary_key": false,
+          "type_category": "NUMERIC",
+          "max_length": null
+        },
+        {
+          "name": "hire_date",
+          "data_type": "DATE",
+          "nullable": true,
+          "is_primary_key": false,
+          "type_category": "DATE",
+          "max_length": null
+        }
+      ],
+      "primary_key": [
+        "EMPLOYEE_ID"
+      ],
+      "source": "ddl"
+    },
+    {
+      "name": "departments",
+      "columns": [
+        {
+          "name": "department_id",
+          "data_type": "NUMBER(10)",
+          "nullable": false,
+          "is_primary_key": true,
+          "type_category": "NUMERIC",
+          "max_length": null
+        },
+        {
+          "name": "name",
+          "data_type": "VARCHAR2(100)",
+          "nullable": false,
+          "is_primary_key": false,
+          "type_category": "STRING",
+          "max_length": 100
+        }
+      ],
+      "primary_key": [
+        "DEPARTMENT_ID"
+      ],
+      "source": "ddl"
+    }
+  ]
+}

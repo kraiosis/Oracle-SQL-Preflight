@@ -1,0 +1,15 @@
+{
+  "app_name": "Oracle SQL Preflight Analyzer",
+  "version": "0.1.0",
+  "mode": "offline",
+  "ai_enabled": false,
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8000
+  },
+  "dialect": "oracle",
+  "history": {
+    "enabled": true,
+    "db_path": "config/history.sqlite3"
+  }
+}

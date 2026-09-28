@@ -1,0 +1,364 @@
+{
+  "rules": [
+    {
+      "id": "PARSE-001",
+      "category": "PARSE",
+      "severity": "CRITICAL",
+      "title": "SQL could not be parsed",
+      "description": "The statement could not be parsed using the Oracle SQL dialect.",
+      "recommendation": "Fix the SQL syntax and re-run analysis.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "PARSE-002",
+      "category": "PARSE",
+      "severity": "INFO",
+      "title": "Statement type not yet analyzed",
+      "description": "The statement parsed successfully but this statement type has no dedicated logic rules in the current MVP.",
+      "recommendation": "No action required. Support for this statement type is planned.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-001",
+      "category": "DML",
+      "severity": "CRITICAL",
+      "title": "UPDATE has no WHERE clause",
+      "description": "This statement can update every row in the target table.",
+      "recommendation": "Add a WHERE clause that targets only the intended rows, or confirm that a full-table update is intentional.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-002",
+      "category": "DML",
+      "severity": "CRITICAL",
+      "title": "DELETE has no WHERE clause",
+      "description": "This statement can delete every row in the target table.",
+      "recommendation": "Add a WHERE clause that targets only the intended rows, or confirm that a full-table delete is intentional.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-SET-WHERE-001",
+      "category": "DML",
+      "severity": "WARNING",
+      "title": "Potential SET/WHERE no-op",
+      "description": "A column is assigned the same literal value that the WHERE clause requires it to already equal. Rows matching WHERE may already hold this value for this column.",
+      "recommendation": "Verify whether this column needs to be updated at all for rows that already satisfy the WHERE clause.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-SET-SELF-001",
+      "category": "DML",
+      "severity": "WARNING",
+      "title": "Self-assignment (unconditional no-op)",
+      "description": "A column is assigned to itself with no transformation (e.g. SET salary = salary). This assignment never changes the value of any matched row, regardless of the WHERE clause or the underlying data.",
+      "recommendation": "Remove this assignment, or replace it with the transformation you actually intended.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-SET-FUNC-001",
+      "category": "DML",
+      "severity": "INFO",
+      "title": "Possible function-wrapped no-op assignment",
+      "description": "A column is assigned the result of a function applied to itself (e.g. SET status = UPPER(status), SET salary = NVL(salary, 0)). This is a no-op for any row where the function does not change the existing value -- whether that is the case depends on the data, which is unknown offline.",
+      "recommendation": "Confirm whether this assignment is expected to change values for the rows it will match; the expression cannot be proven a no-op without seeing the data.",
+      "requires_database": true,
+      "enabled": true
+    },
+    {
+      "id": "DML-WHERE-002",
+      "category": "LOGIC",
+      "severity": "WARNING",
+      "title": "Contradictory WHERE equality",
+      "description": "The same column is required by AND-ed equality predicates to equal more than one different literal value. No row can satisfy this.",
+      "recommendation": "Review the WHERE clause; as written no row can satisfy both conditions simultaneously.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-WHERE-007",
+      "category": "LOGIC",
+      "severity": "WARNING",
+      "title": "Contradictory numeric range",
+      "description": "AND-ed numeric range predicates on the same column (using >, >=, <, <=) leave no possible value -- the lower bound excludes every value the upper bound allows. No row can satisfy this.",
+      "recommendation": "Review the range bounds on this column; as written they cannot both hold for any value.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-WHERE-003",
+      "category": "LOGIC",
+      "severity": "WARNING",
+      "title": "Constant-false predicate",
+      "description": "The WHERE clause contains a predicate that is always false (e.g. 1 = 2, or two different literals compared for equality). The statement may affect zero rows.",
+      "recommendation": "Review the WHERE clause; this condition can never be true.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-WHERE-004",
+      "category": "LOGIC",
+      "severity": "INFO",
+      "title": "Always-true predicate",
+      "description": "The WHERE clause contains a predicate that is always true (e.g. 1 = 1). This may be intentional, but combined with other conditions it does not filter any rows.",
+      "recommendation": "Confirm this condition is intentional (e.g. temporary debugging code left in the statement).",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-WHERE-005",
+      "category": "LOGIC",
+      "severity": "WARNING",
+      "title": "Equality compared to NULL",
+      "description": "A predicate uses '= NULL' or '<> NULL'. In Oracle, NULL comparisons with = or <> never evaluate to TRUE. IS NULL / IS NOT NULL should be used instead.",
+      "recommendation": "Replace '= NULL' / '<> NULL' with IS NULL / IS NOT NULL.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-WHERE-006",
+      "category": "LOGIC",
+      "severity": "INFO",
+      "title": "Column compared to itself",
+      "description": "A predicate compares a column to itself (e.g. column = column). Due to Oracle NULL semantics this excludes any row where the column is NULL, which may be unintended.",
+      "recommendation": "Confirm whether NULL-valued rows should be excluded here.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "DML-003",
+      "category": "DML",
+      "severity": "INFO",
+      "title": "INSERT statement recognized",
+      "description": "INSERT statements are recognized structurally. Data-dependent validation (datatypes, constraints, sequence/identity behavior) requires Oracle metadata and is not available offline.",
+      "recommendation": "Connect to an Oracle DEV/TEST environment for datatype and constraint validation (planned feature).",
+      "requires_database": true,
+      "enabled": true
+    },
+    {
+      "id": "DML-004",
+      "category": "DML",
+      "severity": "INFO",
+      "title": "MERGE statement recognized",
+      "description": "MERGE statements are recognized structurally. Match-condition cardinality and branch-level risk analysis require Oracle metadata and/or data and are not available offline.",
+      "recommendation": "Connect to an Oracle DEV/TEST environment for match-condition cardinality analysis (planned feature).",
+      "requires_database": true,
+      "enabled": true
+    },
+    {
+      "id": "PERF-001",
+      "category": "PERF",
+      "severity": "INFO",
+      "title": "SELECT * detected",
+      "description": "The statement selects all columns with SELECT *. This is not necessarily wrong, but it can hide the true column dependency surface and may retrieve more data than needed.",
+      "recommendation": "Consider listing only the columns actually needed.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "JOIN-001",
+      "category": "JOIN",
+      "severity": "WARNING",
+      "title": "Possible Cartesian join (missing join predicate)",
+      "description": "A table in the FROM/JOIN list has no equality predicate -- in an ON clause or the WHERE clause -- connecting it to any other table in the query. This can produce a Cartesian product, multiplying the result set by that table's row count.",
+      "recommendation": "Add a join predicate (ON or WHERE) connecting this table to the rest of the query, or use an explicit CROSS JOIN to state that a full cross join is intentional.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "SCHEMA-001",
+      "category": "SCHEMA",
+      "severity": "ERROR",
+      "title": "Unknown column for target table",
+      "description": "This column is not defined on the target table in the offline schema you imported (Schema tab / config/schema.json). If the imported schema is accurate and current, this statement would fail with an Oracle invalid-identifier error (ORA-00904).",
+      "recommendation": "Check the column name for a typo, or re-import the table's DDL if the schema you imported is out of date.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "SCHEMA-002",
+      "category": "SCHEMA",
+      "severity": "INFO",
+      "title": "WHERE clause does not reference the primary key",
+      "description": "The target table has a primary key defined in the imported schema, but none of its primary-key columns appear as an equality predicate in the WHERE clause. This does not mean the statement is wrong -- many valid updates/deletes filter on other columns -- but it is worth a second look before running against more than one row.",
+      "recommendation": "Confirm this statement is meant to affect a set of rows rather than a single row identified by primary key.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-001",
+      "category": "ORACLE",
+      "severity": "CRITICAL",
+      "title": "Division by zero (ORA-01476)",
+      "description": "An expression divides by the literal 0. Oracle raises ORA-01476: divisor is equal to zero for this on every execution -- it does not depend on data, so this is not a maybe.",
+      "recommendation": "Remove the division by zero, or guard it (e.g. NULLIF(denominator, 0)) if a zero denominator is a real, expected case.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-002",
+      "category": "ORACLE",
+      "severity": "ERROR",
+      "title": "Non-numeric literal compared against a NUMBER column (ORA-01722)",
+      "description": "A NUMBER-family column (per the offline schema you imported) is compared or assigned a string literal that cannot be interpreted as a number. Oracle would raise ORA-01722: invalid number for this at execution time.",
+      "recommendation": "Remove the quotes if this was meant to be a numeric literal, or check whether the imported schema for this column is out of date.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-003",
+      "category": "ORACLE",
+      "severity": "ERROR",
+      "title": "NULL assigned to a NOT NULL column (ORA-01400 / ORA-01407)",
+      "description": "A column marked NOT NULL in the offline schema you imported is explicitly assigned NULL. Oracle would raise ORA-01400 (INSERT) or ORA-01407 (UPDATE) for this, unless the imported schema is out of date. This check only looks at explicit NULL literals -- it does not know about DEFAULT clauses, so an omitted column is never flagged.",
+      "recommendation": "Provide a real value for this column, or check whether the imported schema's NOT NULL constraint is still accurate.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-004",
+      "category": "ORACLE",
+      "severity": "ERROR",
+      "title": "String literal longer than the column's declared size (ORA-12899)",
+      "description": "A string literal is longer than the VARCHAR2/CHAR length declared for this column in the offline schema you imported. Oracle would raise ORA-12899: value too large for column for this. This check compares character counts and does not account for BYTE-length columns or multi-byte character sets, so it can be off for those.",
+      "recommendation": "Shorten the value, widen the column, or check whether the imported schema's column length is still accurate.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-005",
+      "category": "ORACLE",
+      "severity": "ERROR",
+      "title": "Mismatched column counts across UNION/INTERSECT/MINUS branches (ORA-01789)",
+      "description": "The branches of a UNION, UNION ALL, INTERSECT, or MINUS query select different numbers of columns. Oracle would raise ORA-01789: query block has incorrect number of result columns for this -- this is provable from the SQL text alone, not a maybe.",
+      "recommendation": "Make every branch select the same number of columns.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-006",
+      "category": "ORACLE",
+      "severity": "WARNING",
+      "title": "Scalar subquery may return more than one row (ORA-01427)",
+      "description": "A subquery is used where Oracle requires at most one row (as the operand of =, <>, >, <, >=, or <=), and nothing in its structure (a bare aggregate with no GROUP BY, ROWNUM = 1, or FETCH FIRST 1 ROWS ONLY) guarantees it returns only one row. If it returns more than one row at runtime, Oracle raises ORA-01427: single-row subquery returns more than one row. This is not proof the subquery IS multi-row -- a unique index or other constraint not visible offline may already guarantee it -- only that this check cannot rule it out from the SQL alone.",
+      "recommendation": "Confirm the subquery is guaranteed to return at most one row (e.g. via a unique constraint), or add an explicit single-row guard such as ROWNUM = 1 / FETCH FIRST 1 ROW ONLY / an aggregate.",
+      "requires_database": true,
+      "enabled": true
+    },
+    {
+      "id": "CTE-001",
+      "category": "SELECT",
+      "severity": "INFO",
+      "title": "Unused CTE (WITH-clause subquery never referenced)",
+      "description": "A subquery defined in the WITH clause is never referenced anywhere else in the statement -- not by the main query, and not by any other CTE. This is provable from the SQL text alone: the name simply does not appear as a table reference anywhere in the statement.",
+      "recommendation": "Remove the unused CTE, or check whether a reference to it was meant to be added elsewhere in the statement.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "CASE-001",
+      "category": "CASE",
+      "severity": "INFO",
+      "title": "CASE expression has no ELSE branch",
+      "description": "This CASE expression has no ELSE. Any row that matches none of the WHEN conditions silently evaluates to NULL, which is easy to miss downstream.",
+      "recommendation": "Add an explicit ELSE branch (even ELSE NULL) if that is really the intended fallback, so the behavior is visible rather than implicit.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "CASE-002",
+      "category": "CASE",
+      "severity": "WARNING",
+      "title": "Duplicate WHEN value in CASE expression",
+      "description": "The same WHEN value (simple CASE) or WHEN column = literal condition (searched CASE) appears more than once in this CASE expression. Oracle always takes the first matching WHEN, so every later branch with the same value can never be reached.",
+      "recommendation": "Remove the unreachable WHEN branch, or fix the value if it was meant to test something else.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-007",
+      "category": "ORACLE",
+      "severity": "ERROR",
+      "title": "Analytic/window function used in WHERE, HAVING, or GROUP BY (ORA-30483)",
+      "description": "An analytic (window) function is used directly in this query block's own WHERE, HAVING, or GROUP BY clause. Oracle only allows an analytic function in the SELECT list or ORDER BY of the query block that computes it -- Oracle raises ORA-30483: window functions are not allowed here for this.",
+      "recommendation": "Compute the analytic function in a subquery or WITH clause and filter on the resulting column in the outer query instead.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "ORA-008",
+      "category": "ORACLE",
+      "severity": "ERROR",
+      "title": "RANK/DENSE_RANK/NTILE with no ORDER BY in OVER() (ORA-30485)",
+      "description": "RANK, DENSE_RANK, and NTILE are only meaningful relative to an ordering, and Oracle requires an ORDER BY inside the OVER() clause for these functions -- without one, Oracle raises ORA-30485: missing window specification for this analytic function.",
+      "recommendation": "Add an ORDER BY inside the OVER() clause, e.g. OVER (PARTITION BY ... ORDER BY ...).",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "SUBQ-001",
+      "category": "PERF",
+      "severity": "INFO",
+      "title": "Correlated subquery detected",
+      "description": "This subquery references a column from its enclosing query's own FROM/JOIN list, making it a correlated subquery: Oracle re-evaluates it once per row of the outer query rather than once overall. This is not necessarily wrong -- it is often exactly what's intended (e.g. EXISTS checks) -- but it is worth knowing when reasoning about performance on a large outer row set.",
+      "recommendation": "Confirm the per-row re-evaluation is intended; for large outer row sets, consider whether the same result could be obtained with a JOIN instead.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "BIND-001",
+      "category": "BIND",
+      "severity": "WARNING",
+      "title": "Bind variable compared against columns of different types",
+      "description": "The same named bind variable (:name) is compared against columns that the offline schema you imported classifies under different type categories (e.g. one NUMBER-family column and one VARCHAR2/CHAR column). Reusing one bind variable name for genuinely different kinds of values is a common copy/paste mistake. This only fires when both columns are covered by the imported schema and qualified with a table name/alias -- anything it cannot resolve is silently skipped.",
+      "recommendation": "Use a distinct bind variable name for each logically different value, or confirm the same value is genuinely meant to be compared against both columns.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "PLSQL-001",
+      "category": "PLSQL",
+      "severity": "INFO",
+      "title": "PL/SQL block detected -- not analyzed",
+      "description": "This is an anonymous PL/SQL block (DECLARE/BEGIN...END) or the body of a CREATE PROCEDURE/FUNCTION/PACKAGE/TRIGGER. This tool's parser (SQLGlot) parses SQL, not PL/SQL, so nothing inside this block was checked by any rule in this catalog -- this finding only confirms the block was recognized and its boundaries (up to the next '/' on its own line, or the end of the script) correctly identified.",
+      "recommendation": "Review this block's logic manually or in an Oracle-aware IDE. Any SQL statements inside it are not covered by this analyzer.",
+      "requires_database": true,
+      "enabled": true
+    },
+    {
+      "id": "DYNSQL-001",
+      "category": "PLSQL",
+      "severity": "INFO",
+      "title": "Dynamic SQL (EXECUTE IMMEDIATE) detected -- not analyzed",
+      "description": "This statement executes SQL text that is built or supplied at runtime, so the SQL actually run cannot be checked by this offline analyzer -- only that an EXECUTE IMMEDIATE call exists here.",
+      "recommendation": "If the executed SQL text is fixed or known, consider analyzing it separately by pasting it directly.",
+      "requires_database": true,
+      "enabled": true
+    },
+    {
+      "id": "DYNSQL-002",
+      "category": "PLSQL",
+      "severity": "WARNING",
+      "title": "Dynamic SQL built via string concatenation",
+      "description": "This EXECUTE IMMEDIATE statement builds its SQL text by concatenating pieces with || rather than using a single literal string. If any concatenated piece comes from unvalidated external input, this is a SQL-injection risk.",
+      "recommendation": "Prefer bind variables (an EXECUTE IMMEDIATE ... USING clause) over concatenating values directly into the SQL text, especially for anything derived from user input.",
+      "requires_database": false,
+      "enabled": true
+    },
+    {
+      "id": "CALL-001",
+      "category": "PLSQL",
+      "severity": "INFO",
+      "title": "CALL statement recognized -- not analyzed",
+      "description": "This CALL statement invokes a stored procedure or function. Validating its arguments (count, types, in/out modes) requires the procedure's own signature from Oracle metadata, which is not available offline.",
+      "recommendation": "Connect to an Oracle DEV/TEST environment for signature validation (planned feature).",
+      "requires_database": true,
+      "enabled": true
+    }
+  ]
+}
