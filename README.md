@@ -1,6 +1,6 @@
 # Oracle SQL Preflight Analyzer
 
-**Version:** 0.1.0 MVP  
+**Version:** 0.9.0 MVP  
 **Architecture:** Python + FastAPI + SQLGlot + local browser UI  
 **Operating model:** Offline-first, deterministic, AI-free  
 **Author:** Federico Guzman ([fedeguzman.com](https://fedeguzman.com) · [weblantropia.com](https://weblantropia.com) · [github.com/kraiosis](https://github.com/kraiosis))  
